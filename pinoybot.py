@@ -11,6 +11,11 @@ Model training and feature extraction should be implemented in a separate script
 import os
 import pickle
 from typing import List
+import joblib 
+
+
+vectorizer = joblib.load('pinoybot_vectorizer.pkl')
+model = joblib.load('pinoybot_model.pkl')
 
 # Main tagging function
 def tag_language(tokens: List[str]) -> List[str]:
@@ -41,10 +46,14 @@ def tag_language(tokens: List[str]) -> List[str]:
     # the tag_language function is retained and correctly accomplishes the expected task.
 
     # Currently, the bot just tags every token as FIL. Replace this with your more intelligent predictions.
-    return ['FIL' for i in tokens]
+    
+    tokens_vec = vectorizer.transform(tokens)
+    predicted_tags = model.predict(tokens_vec)
+    return [str(tag) for tag in predicted_tags]
 
 if __name__ == "__main__":
     # Example usage
     example_tokens = ["Love", "kita", "."]
     print("Tokens:", example_tokens)
     tags = tag_language(example_tokens)
+    print("Predicted Tags:", tags)
