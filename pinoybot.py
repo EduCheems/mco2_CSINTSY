@@ -9,51 +9,73 @@ Model training and feature extraction should be implemented in a separate script
 """
 
 import os
-import pickle
-from typing import List
 import joblib 
+import re
+import pandas as pd
+from scipy.sparse import hstack
+from typing import List
 
-
-vectorizer = joblib.load('pinoybot_vectorizer.pkl')
-model = joblib.load('pinoybot_model.pkl')
+# Helper function to extract prefix/suffix (Must match trainmodel.py)
+def extract_prefix_suffix(word, n=3):
+	# Returns the prefix and suffix for a single word token
+	word_l = str(word).lower()
+	return pd.Series({
+		f'prefix_{n}': word_l[:n],
+		f'suffix_{n}': word_l[-n:]
+	})
 
 # Main tagging function
 def tag_language(tokens: List[str]) -> List[str]:
-    """
-    Tags each token in the input list with its predicted language.
-    Args:
-        tokens: List of word tokens (strings).
-    Returns:
-        tags: List of predicted tags ("ENG", "FIL", or "OTH"), one per token.
-    """
-    # 1. Load your trained model from disk (e.g., using pickle or joblib)
-    #    Example: with open('trained_model.pkl', 'rb') as f: model = pickle.load(f)
-    #    (Replace with your actual model loading code)
+	# Check for empty input
+	if not tokens:
+		return []
 
-    # 2. Extract features from the input tokens to create the feature matrix
-    #    Example: features = ... (your feature extraction logic here)
+	# File paths for the saved components
+	model_path = 'pinoybot_model.pkl'
+	vectorizer_path = 'pinoybot_vectorizer.pkl'
+	ohe_cols_path = 'pinoybot_ohe_cols.pkl'
 
-    # 3. Use the model to predict the tags for each token
-    #    Example: predicted = model.predict(features)
+	# Minimal file existence check
+	if not all(os.path.exists(p) for p in [model_path, vectorizer_path, ohe_cols_path]):
+		return ['OTH'] * len(tokens) 
 
-    # 4. Convert the predictions to a list of strings ("ENG", "FIL", or "OTH")
-    #    Example: tags = [str(tag) for tag in predicted]
+	try:
+		# 1. Load trained model and transformers
+		model = joblib.load(model_path)
+		vectorizer = joblib.load(vectorizer_path)
+		ohe_cols_list = joblib.load(ohe_cols_path)
+	except Exception:
+		return ['OTH'] * len(tokens)
 
-    # 5. Return the list of tags
-    #    return tags
+	# 2. Extract Prefix/Suffix features and align columns
+	df_tokens = pd.DataFrame({'word': tokens})
+	X_pred_cat_raw = df_tokens['word'].apply(extract_prefix_suffix).reset_index(drop=True)
+	X_pred_ohe = pd.get_dummies(X_pred_cat_raw, prefix=['pre', 'suf'])
 
-    # You can define other functions, import new libraries, or add other Python files as needed, as long as
-    # the tag_language function is retained and correctly accomplishes the expected task.
+	# Reindex OHE matrix to match training columns (fixes the feature count mismatch)
+	X_pred_ohe_aligned = X_pred_ohe.reindex(columns=ohe_cols_list, fill_value=0)
 
-    # Currently, the bot just tags every token as FIL. Replace this with your more intelligent predictions.
-    
-    tokens_vec = vectorizer.transform(tokens)
-    predicted_tags = model.predict(tokens_vec)
-    return [str(tag) for tag in predicted_tags]
+	# 3. Vectorize text features
+	X_pred_vec = vectorizer.transform(tokens)
+
+	# 4. Combine features (TF-IDF + OHE)
+	X_combined_pred = hstack([X_pred_vec, X_pred_ohe_aligned.astype(int).values])
+
+	# 5. Use the model to predict the tags
+	predicted_tags = model.predict(X_combined_pred)
+	
+	# 6. Return the list of tags
+	return predicted_tags.tolist()
 
 if __name__ == "__main__":
-    # Example usage
-    example_tokens = ["Love", "kita", "."]
-    print("Tokens:", example_tokens)
-    tags = tag_language(example_tokens)
-    print("Predicted Tags:", tags)
+	# Example usage
+	example_tokens = ["Love", "kita", "."]
+	print("Tokens:", example_tokens)
+	tags = tag_language(example_tokens)
+	print("Predicted Tags:", tags)
+	
+	# Add a second test case for better verification
+	example_tokens_2 = ["nag-lunch", "sa", "park"]
+	print("\nTokens:", example_tokens_2)
+	tags_2 = tag_language(example_tokens_2)
+	print("Predicted Tags:", tags_2)
