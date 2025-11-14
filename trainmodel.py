@@ -22,11 +22,11 @@ df['label'] = df['label'].replace({
     'NUM': 'OTH'
 })
 
-print(df.head())
 print(df['label'].value_counts())
-
 
 # Extract features here maybe ?
 
+def getFeatures(word):
+    
 
 
