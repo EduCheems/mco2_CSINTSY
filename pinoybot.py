@@ -75,7 +75,7 @@ if __name__ == "__main__":
 	print("Predicted Tags:", tags)
 	
 	# Add a second test case for better verification
-	example_tokens_2 = ["nag-lunch", "sa", "park"]
+	example_tokens_2 = ["nag-lunch", "sa", "magazine"]
 	print("\nTokens:", example_tokens_2)
 	tags_2 = tag_language(example_tokens_2)
 	print("Predicted Tags:", tags_2)
