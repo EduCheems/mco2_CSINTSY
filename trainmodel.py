@@ -59,7 +59,7 @@ print(classification_report(y_val, val_predictions))
 print('test prediction result')
 print(classification_report(y_test, test_predictions))
 
-joblib.dump(model, 'pinoyboy_model.pkl')
+joblib.dump(model, 'pinoybot_model.pkl')
 joblib.dump(vectorizer, 'pinoybot_vectorizer.pkl')
 
 
