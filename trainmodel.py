@@ -6,7 +6,8 @@ df2 = pd.read_excel("validated dataset 2548-2600.xlsx")
 df3 = pd.read_excel("MCO2 Dataset (G29).xlsx")
 df4 = pd.read_excel("g3 datasettt.xlsx")
 
-df = pd.concat([df1, df2, df3, df4])
+# Combine/align datasets then clean up with avoid overlapping with ignore index 
+df = pd.concat([df1, df2, df3, df4], ignore_index = True)
 print(df.head())
 
 # Keep only important columns
@@ -26,4 +27,5 @@ print(df['label'].value_counts())
 
 
 # Extract features here maybe ?
+
 
